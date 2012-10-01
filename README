@@ -1,0 +1,30 @@
+This is a mirror of http://www.vim.org/scripts/script.php?script_id=4248
+
+DESCRIPTION
+This plugin offers completions that either use the last search pattern or
+query for a regular expression, and then offer all matches for completion.
+No completion base is used.
+
+Without this plugin, you can just directly insert the contents of the last
+search pattern register via CTRL-R /, but the register can contain \<word\>
+boundary characters from a star search or other non-literal regexp atoms
+like \V, .*, etc., which you usually don't want inserted into the text.
+
+SEE ALSO
+- Check out the CompleteHelper.vim plugin page (vimscript #3914) for a full
+  list of insert mode completions powered by it.
+
+USAGE
+CTRL-X /                The completion first queries for {pattern} (press
+                        <Enter> to conclude), then finds matches for
+                        {pattern}.
+
+CTRL-X *                The completion first queries for {pattern} (press
+                        <Enter> to conclude), then finds matches for
+                        \<{pattern}\>, or {pattern} surrounded by whitespace
+                        as a fallback.
+
+CTRL-X &                Find matches for the last search pattern, quote/.
+
+CTRL-R &                Insert first match for the last search pattern
+                        quote/ into the command-line.
