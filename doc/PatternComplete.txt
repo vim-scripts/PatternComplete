@@ -59,6 +59,8 @@ To uninstall, use the |:RmVimball| command.
 DEPENDENCIES					*PatternComplete-dependencies*
 
 - Requires Vim 7.0 or higher.
+- Requires the |ingo-library.vim| plugin (vimscript #4433), version 1.008 or
+  higher.
 - Requires the |CompleteHelper.vim| plugin (vimscript #3914).
 
 ==============================================================================
@@ -94,6 +96,11 @@ IDEAS						       *PatternComplete-ideas*
 ==============================================================================
 HISTORY						     *PatternComplete-history*
 
+1.01	15-Jul-2013
+- DWIM: Remove the \<...\> enclosure when the last used search pattern is a
+  whole word search (that just has no matches now).
+- Add dependency to ingo-library (vimscript #4433).
+
 1.00	01-Oct-2012
 First published version.
 
@@ -101,8 +108,8 @@ First published version.
 Started development.
 
 ==============================================================================
-Copyright: (C) 2011-2012 Ingo Karkat
-The VIM LICENSE applies to this script; see |copyright|.
+Copyright: (C) 2011-2013 Ingo Karkat
+The VIM LICENSE applies to this plugin; see |copyright|.
 
 Maintainer:	Ingo Karkat <ingo@karkat.de>
 ==============================================================================

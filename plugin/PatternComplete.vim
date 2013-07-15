@@ -10,6 +10,9 @@
 " Maintainer:	Ingo Karkat <ingo@karkat.de>
 "
 " REVISION	DATE		REMARKS
+"   1.01.008	06-Feb-2013	Move command-line insertion functions to
+"				separate PatternComplete/NextSearchMatch.vim
+"				script.
 "   1.00.007	03-Sep-2012	Add value "b" (other listed buffers) to the
 "				plugin's 'complete' option offered by
 "				CompleteHelper.vim 1.20.
@@ -54,7 +57,7 @@ if ! hasmapto('<Plug>(PatternCompleteSearch)', 'i')
 endif
 
 
-cnoremap <expr> <Plug>(PatternCompleteSearchMatch) PatternComplete#SearchMatch()
+cnoremap <expr> <Plug>(PatternCompleteSearchMatch) PatternComplete#NextSearchMatch#InsertInCmdline()
 if ! hasmapto('<Plug>(PatternCompleteSearchMatch)', 'c')
     cmap <C-r>& <Plug>(PatternCompleteSearchMatch)
 endif

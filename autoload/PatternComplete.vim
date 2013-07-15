@@ -1,15 +1,20 @@
 " PatternComplete.vim: Insert mode completion for matches of queried / last search pattern.
 "
 " DEPENDENCIES:
-"   - Requires Vim 7.0 or higher.
 "   - CompleteHelper.vim autoload script
+"   - ingo/msg.vim autoload script
 "
-" Copyright: (C) 2011-2012 Ingo Karkat
+" Copyright: (C) 2011-2013 Ingo Karkat
 "   The VIM LICENSE applies to this script; see ':help copyright'.
 "
 " Maintainer:	Ingo Karkat <ingo@karkat.de>
 "
 " REVISION	DATE		REMARKS
+"   1.01.009	14-Jun-2013	Use ingo/msg.vim.
+"   1.01.008	06-Feb-2013	Move command-line insertion functions to
+"				separate PatternComplete/NextSearchMatch.vim
+"				script. Only need to additionally expose
+"				s:GetCompleteOption().
 "   1.00.007	01-Sep-2012	Make a:matchObj in CompleteHelper#ExtractText()
 "				optional; it's not used there, anyway.
 "	006	20-Aug-2012	Split off functions into separate autoload
@@ -24,17 +29,12 @@
 "	002	04-Oct-2011	Move s:Process() to CompleteHelper#Abbreviate().
 "	001	03-Oct-2011	file creation from MotionComplete.vim.
 
-function! s:GetCompleteOption()
+function! PatternComplete#GetCompleteOption()
     return (exists('b:PatternComplete_complete') ? b:PatternComplete_complete : g:PatternComplete_complete)
 endfunction
 
 function! s:ErrorMsg( exception )
-    " v:exception contains what is normally in v:errmsg, but with extra
-    " exception source info prepended, which we cut away.
-    let v:errmsg = substitute(a:exception, '^Vim\%((\a\+)\)\=:', '', '')
-    echohl ErrorMsg
-    echomsg v:errmsg
-    echohl None
+    call ingo#msg#VimExceptionMsg()
 
     if &cmdheight == 1
 	sleep 500m
@@ -47,7 +47,7 @@ function! PatternComplete#PatternComplete( findstart, base )
     else
 	try
 	    let l:matches = []
-	    call CompleteHelper#FindMatches( l:matches, s:pattern, {'complete': s:GetCompleteOption()} )
+	    call CompleteHelper#FindMatches(l:matches, s:pattern, {'complete': PatternComplete#GetCompleteOption()})
 	    call map(l:matches, 'CompleteHelper#Abbreviate(v:val)')
 	    return l:matches
 	catch /^Vim\%((\a\+)\)\=:E/
@@ -63,9 +63,9 @@ function! PatternComplete#WordPatternComplete( findstart, base )
     else
 	try
 	    let l:matches = []
-	    call CompleteHelper#FindMatches( l:matches, '\<\%(' . s:pattern . '\m\)\>', {'complete': s:GetCompleteOption()} )
+	    call CompleteHelper#FindMatches(l:matches, '\<\%(' . s:pattern . '\m\)\>', {'complete': PatternComplete#GetCompleteOption()})
 	    if empty(l:matches)
-		call CompleteHelper#FindMatches( l:matches, '\%(^\|\s\)\zs\%(' . s:pattern . '\m\)\ze\%($\|\s\)', {'complete': s:GetCompleteOption()} )
+		call CompleteHelper#FindMatches(l:matches, '\%(^\|\s\)\zs\%(' . s:pattern . '\m\)\ze\%($\|\s\)', {'complete': PatternComplete#GetCompleteOption()})
 	    endif
 
 	    call map(l:matches, 'CompleteHelper#Abbreviate(v:val)')
@@ -101,82 +101,13 @@ function! PatternComplete#InputExpr( isWordInput )
 endfunction
 function! PatternComplete#SearchExpr()
     if empty(@/)
-	let v:errmsg = 'E35: No previous regular expression'
-	echohl ErrorMsg
-	echomsg v:errmsg
-	echohl None
-
+	call ingo#msg#ErrorMsg('E35: No previous regular expression')
 	return "$\<BS>"
     endif
 
     let s:pattern = @/
     set completefunc=PatternComplete#PatternComplete
     return "\<C-x>\<C-u>"
-endfunction
-
-
-
-function! PatternComplete#GetNextSearchMatch( completeOption )
-    " As an optimization, try a buffer-search from the cursor position first,
-    " before triggering the full completion search over all windows.
-    let l:startPos = searchpos(@/, 'cnw')
-    if l:startPos != [0, 0]
-	let l:endPos = searchpos(@/, 'enw')
-	if l:endPos != [0, 0]
-	    let l:searchMatch = CompleteHelper#ExtractText(l:startPos, l:endPos)
-	    if ! empty(l:searchMatch)
-		return l:searchMatch
-	    endif
-	endif
-    endif
-
-    if empty(a:completeOption) || a:completeOption ==# '.'
-	" No completion from other buffers desired.
-	return @/
-    endif
-
-    " Do a full completion search.
-    " XXX: As the CompleteHelper#FindMatches() implementation visits every
-    " window (and this is not allowed in a :cmap), we need to jump out of
-    " command-line mode for that, and then do the insertion into the
-    " command-line ourselves.
-    let [s:cmdline, s:cmdpos] = [getcmdline(), getcmdpos()]
-    return "\<C-c>:call PatternComplete#SetSearchMatch(" . string(a:completeOption) . ")\<CR>"
-endfunction
-function! PatternComplete#SetSearchMatch( completeOption )
-    try
-	let l:completeMatches = []
-	" As the command-line is directly set via c_CTRL-\_e, no translation of
-	" newlines is necessary.
-	call CompleteHelper#FindMatches(l:completeMatches, @/, {'complete': a:completeOption})
-	if ! empty(l:completeMatches)
-	    let s:match = l:completeMatches[0].word
-	else
-	    " Fall back to returning the search pattern itself. It's up to the
-	    " user to turn it into literal text by editing out the regular
-	    " expression atoms.
-	    let s:match = @/
-	endif
-
-	call feedkeys(":\<C-\>e(PatternComplete#SetSearchMatchCmdline())\<CR>")
-    catch /^Vim\%((\a\+)\)\=:E/
-	" v:exception contains what is normally in v:errmsg, but with extra
-	" exception source info prepended, which we cut away.
-	let v:errmsg = substitute(v:exception, '^Vim\%((\a\+)\)\=:', '', '')
-	echohl ErrorMsg
-	echomsg v:errmsg
-	echohl None
-    endtry
-endfunction
-function! PatternComplete#SetSearchMatchCmdline()
-    call setcmdpos(s:cmdpos + len(s:match))
-    return strpart(s:cmdline, 0, s:cmdpos - 1) . s:match . strpart(s:cmdline, s:cmdpos - 1)
-endfunction
-function! PatternComplete#SearchMatch()
-    " For the command-line, newlines must be represented by a ^@; otherwise, the
-    " newline would be interpreted as <CR> and prematurely execute the
-    " command-line.
-    return substitute(PatternComplete#GetNextSearchMatch(s:GetCompleteOption()), '\n', "\<C-v>\<C-@>", 'g')
 endfunction
 
 " vim: set ts=8 sts=4 sw=4 noexpandtab ff=unix fdm=syntax :
